@@ -1,4 +1,5 @@
-﻿module Trie
+﻿[<RequireQualifiedAccess>]
+module Trie
 
 type Trie(c:Option<char>) =
     member val children = Map.empty with get, set
@@ -45,4 +46,10 @@ let getWordsUnderString(trie:Trie, value:string) =
     | _ -> getWords(t.Value) |> Seq.map (fun w -> value + w)
 
 let isPrefix(trie:Trie, prefix:string) =
-    Option.isSome(getPrefix(trie,prefix))
+    let endTrie = getPrefix(trie,prefix)
+    Option.isSome(endTrie)
+
+let isWord(trie:Trie, word:string) =
+    let endTrie = getPrefix(trie, word);
+    let result = endTrie.IsSome && endTrie.Value.eow
+    result
