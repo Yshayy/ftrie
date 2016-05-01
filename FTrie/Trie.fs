@@ -1,24 +1,19 @@
 ﻿[<RequireQualifiedAccess>]
 module Trie
 
-type Trie(c:Option<char>) =
-    member val children = Map.empty with get, set
+type Trie(c:Option<char>, words:string seq, eow:bool) =
     member this.value = c
-    member val eow = false with get, set
-    
+    member this.eow = eow
+    member this.children = words
+                           |> Seq.groupBy(fun word -> word.[0])
+                           |> Seq.map(fun (ch, w) -> 
+                                (ch, new Trie(
+                                    Option.Some(ch), 
+                                    w |> Seq.filter (fun word -> word.Length > 1) |> Seq.map (fun word -> word.Substring(1)),
+                                    w |> Seq.exists (fun word -> word.Length = 1))))
+                           |> Map.ofSeq
 
-let rec insert(trie:Trie, value:string) =
-    if value.Length = 0 then trie.eow <- true
-    else
-        let firstLetter = value.[0]
-        let secondLetter = match value.Length with
-                           | 1 -> Option.None
-                           | _ -> Option.Some(value.[1])
-
-        if (not(trie.children.ContainsKey(firstLetter))) then do
-            trie.children <- trie.children.Add(firstLetter, new Trie(Option.Some(firstLetter)))
-    
-        insert (trie.children.Item(firstLetter), value.Substring(1))
+    new(words:string seq) = Trie(Option.None, words, false)
 
 let getWords(trie:Trie) : string seq =
     let rec getWordsInternal(trie:Trie, substring:string) : string seq =
