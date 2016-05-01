@@ -1,19 +1,20 @@
 ﻿[<RequireQualifiedAccess>]
 module Trie
 
-type Trie(c:Option<char>, words:string seq, eow:bool) =
+type Trie(c:Option<char>, words:string seq) =
+    let chillens = words
+                   |> Seq.filter(fun w -> w.Length > 0)
+                   |> Seq.groupBy(fun word -> word.[0])
+                   |> Seq.map(fun (ch, w) -> 
+                       (ch, new Trie(
+                           Option.Some(ch), 
+                           w |> Seq.map (fun word -> word.Substring(1)))))
+                   |> Map.ofSeq
     member this.value = c
-    member this.eow = eow
-    member this.children = words
-                           |> Seq.groupBy(fun word -> word.[0])
-                           |> Seq.map(fun (ch, w) -> 
-                                (ch, new Trie(
-                                    Option.Some(ch), 
-                                    w |> Seq.filter (fun word -> word.Length > 1) |> Seq.map (fun word -> word.Substring(1)),
-                                    w |> Seq.exists (fun word -> word.Length = 1))))
-                           |> Map.ofSeq
+    member this.eow = words |> Seq.exists (fun word -> word.Length = 0)
+    member this.children = chillens
 
-    new(words:string seq) = Trie(Option.None, words, false)
+    new(words:string seq) = Trie(Option.None, words)
 
 let getWords(trie:Trie) : string seq =
     let rec getWordsInternal(trie:Trie, substring:string) : string seq =
