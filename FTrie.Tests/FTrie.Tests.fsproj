@@ -51,7 +51,11 @@
   <Import Project="$(FSharpTargetsPath)" />
   <ItemGroup>
     <Content Include="packages.config" />
-    <Compile Include="GetWordsUnderStringTests.fs" />
+    <Compile Include="GetWordsPrefixedByTests.fs" />
+    <Compile Include="WithWordTests.fs" />
+    <Compile Include="GetWordsTests.fs" />
+    <Compile Include="IsPrefixTests.fs" />
+    <Compile Include="ContainsTests.fs" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="mscorlib" />

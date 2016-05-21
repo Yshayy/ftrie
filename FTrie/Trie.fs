@@ -2,7 +2,7 @@
 module Trie
 
 type Trie(c:Option<char>, words:string seq) =
-    let chillens = words
+    let childMap = words
                    |> Seq.filter(fun w -> w.Length > 0)
                    |> Seq.groupBy(fun word -> word.[0])
                    |> Seq.map(fun (ch, w) -> 
@@ -10,42 +10,55 @@ type Trie(c:Option<char>, words:string seq) =
                            Option.Some(ch), 
                            w |> Seq.map (fun word -> word.Substring(1)))))
                    |> Map.ofSeq
-    member this.value = c
-    member this.eow = words |> Seq.exists (fun word -> word.Length = 0)
-    member this.children = chillens
 
     new(words:string seq) = Trie(Option.None, words)
+    member this.value = c
+    member this.eow = this.value.IsSome && words |> Seq.exists (fun word -> word.Length = 0)
+    member this.children = childMap
 
-let getWords(trie:Trie) : string seq =
-    let rec getWordsInternal(trie:Trie, substring:string) : string seq =
-        seq {
-            if trie.children.Count = 0 then yield substring
-            else
-                if (trie.eow) then yield substring
-                yield! trie.children |> Map.toSeq |> Seq.collect(fun (c,t) -> getWordsInternal(t, substring+c.ToString()))
-        }
-
-    getWordsInternal(trie, "")
-
-let getPrefix(trie:Trie, prefix:string) =
-    let rec getTrie (curr:Trie, currVal:string) =
-        if currVal.Length = 0 then Option.Some(curr)
-        else if not(curr.children.ContainsKey(currVal.[0])) then Option.None
-        else getTrie(curr.children.Item(currVal.[0]), currVal.Substring(1))
+    // follows a given prefix down the tree and returns the node at the end
+    member private this.getPrefixTrie prefix =
+        let rec getTrie (curr:Trie, currVal:string) =
+            if currVal.Length = 0 then Option.Some(curr)
+            else if not(curr.children.ContainsKey(currVal.[0])) then Option.None
+            else getTrie(curr.children.Item(currVal.[0]), currVal.Substring(1))
     
-    getTrie(trie, prefix)
+        getTrie(this, prefix)
 
-let getWordsUnderString(trie:Trie, value:string) =
-    let t = getPrefix(trie, value)
-    match t with
-    | Option.None -> Seq.empty
-    | _ -> getWords(t.Value) |> Seq.map (fun w -> value + w)
+    member this.withWord word =
+        if this.value.IsSome then invalidOp "Cannot add a word to a non-root Trie node"
+        else
+            Trie(Option.None, word :: List.ofSeq words)
 
-let isPrefix(trie:Trie, prefix:string) =
-    let endTrie = getPrefix(trie,prefix)
-    Option.isSome(endTrie)
+    member this.getWords() =
+        let rec getWordsInternal(trie:Trie, substring) : string seq =
+            seq {
+                if trie.children.Count = 0 then yield substring
+                else
+                    if (trie.eow) then yield substring
+                    yield! trie.children |> Map.toSeq |> Seq.collect(fun (c,t) -> getWordsInternal(t, substring+c.ToString()))
+            }
 
-let isWord(trie:Trie, word:string) =
-    let endTrie = getPrefix(trie, word);
-    let result = endTrie.IsSome && endTrie.Value.eow
-    result
+        getWordsInternal(this, "")
+
+    member this.isPrefix(prefix:string) =
+        let endTrie = this.getPrefixTrie(prefix)
+        Option.isSome(endTrie)
+    
+    member this.getWordsPrefixedBy(value:string) =
+        let t = this.getPrefixTrie(value)
+        match t with
+        | Option.None -> Seq.empty
+        | _ -> t.Value.getWords() |> Seq.map (fun w -> value + w)
+
+    member this.contains(word:string) =
+        let endTrie = this.getPrefixTrie(word);
+        let result = endTrie.IsSome && endTrie.Value.eow
+        result
+
+
+
+
+
+
+
