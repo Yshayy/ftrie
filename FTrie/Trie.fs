@@ -1,5 +1,4 @@
-﻿[<RequireQualifiedAccess>]
-module Trie
+﻿module Trie
 
 type Trie(c:Option<char>, words:string seq) =
     let childMap = words
